@@ -1,0 +1,79 @@
+{
+  "doctype": "DocType",
+  "name": "Simple Order",
+  "module": "Order Management",
+  "engine": "InnoDB",
+  "autoname": "format:ORD-{#####}",
+  "field_order": [
+    "customer_name",
+    "item_name",
+    "quantity",
+    "unit_price",
+    "total",
+    "status"
+  ],
+  "fields": [
+    {
+      "fieldname": "customer_name",
+      "fieldtype": "Data",
+      "label": "Khách hàng",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "item_name",
+      "fieldtype": "Data",
+      "label": "Mặt hàng",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "quantity",
+      "fieldtype": "Float",
+      "label": "Số lượng",
+      "precision": "3",
+      "reqd": 1,
+      "default": "1"
+    },
+    {
+      "fieldname": "unit_price",
+      "fieldtype": "Currency",
+      "label": "Đơn giá",
+      "precision": "2",
+      "reqd": 1
+    },
+    {
+      "fieldname": "total",
+      "fieldtype": "Currency",
+      "label": "Thành tiền",
+      "precision": "2",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Trạng thái",
+      "options": "Mới",
+      "default": "Mới",
+      "read_only": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "create": 1,
+      "read": 1,
+      "write": 1,
+      "report": 1,
+      "print": 1
+    }
+  ],
+  "sort_field": "creation",
+  "sort_order": "DESC",
+  "title_field": "customer_name",
+  "search_fields": "customer_name,item_name",
+  "track_changes": 1
+}

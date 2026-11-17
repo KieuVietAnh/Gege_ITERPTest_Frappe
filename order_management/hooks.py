@@ -1,0 +1,5 @@
+app_name = "order_management"
+app_title = "Order Management"
+app_publisher = "ERP Test"
+app_description = "A small Frappe app for learning order management."
+app_email = "dev@example.com"
