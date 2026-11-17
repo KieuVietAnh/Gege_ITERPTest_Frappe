@@ -1,176 +1,116 @@
-# Order Management — bước đầu học Frappe từ .NET
+# Order Management — bài test ERP/CRM
 
-Đây là **bản khởi tạo để học cấu trúc**, chưa phải bản hoàn thành bài test.
-Mục tiêu: đọc được một DocType, hiểu server xử lý lúc lưu, sau đó mới thêm nghiệp vụ.
+App **Frappe v15** quản lý đơn hàng một mặt hàng, dùng giao diện Desk có sẵn.
+Đề gốc: [JD-IT-ERP-bai-test.md](JD-IT-ERP-bai-test.md).
+Tài khoản và luồng test từng bước: [HUONG-DAN-TEST.md](HUONG-DAN-TEST.md).
+CI khi push/PR lên GitHub: [docs/github-actions.md](docs/github-actions.md).
 
-## Đã có / chưa có
+## Chức năng
 
-- App Python tên `order_management`, hướng tới **Frappe v15**.
-- DocType `Simple Order`: khách hàng, mặt hàng, số lượng, đơn giá, thành tiền, trạng thái.
-- Desk dùng định nghĩa DocType để dựng danh sách và form nhập đơn.
-- Server kiểm tra số lượng / đơn giá lớn hơn 0 và tự tính thành tiền mỗi lần lưu.
-- Bước này chỉ có trạng thái **Mới**, chưa cho chuyển trạng thái.
-- Có test Frappe cho phần nghiệp vụ ban đầu.
+- Khách hàng, mặt hàng, số lượng, đơn giá; server tự tính thành tiền và kiểm tra dữ liệu > 0.
+- Đơn mới luôn là **Mới**, kể cả khi request truyền trạng thái khác.
+- Đơn Mới được sửa và chuyển sang **Đã giao** hoặc **Hủy** bằng nút trên form.
+- Đơn kết thúc bị khóa sửa / đổi trạng thái tại server và trên form.
+- **Daily Revenue**: mỗi ngày một dòng, số đơn và tổng tiền của đơn Đã giao, theo **ngày tạo đơn**.
+  Ví dụ tạo ngày 16, giao ngày 17 thì tính vào ngày 16.
+- Chặn tab cũ ghi đè bằng kiểm tra phiên bản và khóa Document sẵn có của Frappe.
 
-**Chưa làm:** Đã giao / Hủy, khóa đơn sau khi kết thúc, báo cáo doanh thu, ảnh/video bài nộp.
-Chưa có React, giao diện riêng, danh mục khách hàng/mặt hàng hoặc ERPNext.
+## Chạy trên máy hiện tại
 
-## Đối chiếu với .NET
+Đã cài Ubuntu WSL: Frappe 15.126.1, Python 3.12, Node.js 22, MariaDB 10.11, Redis.
 
-| Trong .NET | Trong app Frappe này |
-| --- | --- |
-| `.csproj` | `pyproject.toml`: thông tin package và công cụ đóng gói |
-| `namespace` / assembly | Package Python: thư mục có `__init__.py` |
-| Entity + cấu hình mapping + metadata form | DocType trong `simple_order.json` |
-| Entity instance | Document, ví dụ một đơn hàng cụ thể |
-| Validation / nghiệp vụ trước khi `SaveChanges()` | `SimpleOrder.validate()` trong `simple_order.py` |
-| EF Core migrations | Frappe đồng bộ schema từ DocType khi install / migrate; data migration viết trong patches |
-| Controller API cơ bản | Frappe có API thao tác Document sẵn; bước này chưa cần tự viết endpoint |
-| Trang quản trị CRUD | Desk tạo list/form từ DocType |
-| `Program.cs`, cấu hình mở rộng | Frappe khởi động ứng dụng; `hooks.py` khai báo metadata và các điểm mở rộng |
-| xUnit / NUnit | `FrappeTestCase` dựa trên Python `unittest` |
-
-Các đối chiếu trên giúp làm quen, không phải tương đương hoàn toàn.
-`SimpleOrder` là controller của Document, không phải ASP.NET HTTP Controller.
-Không cần tự thêm Repository, Service và Controller cho thao tác lưu đơn cơ bản này.
-
-## Cấu trúc cần đọc
-
-```text
-testegeg/                            # thư mục gốc của app, có pyproject.toml
-├── JD-IT-ERP-bai-test.md             # đề gốc
-├── pyproject.toml                   # package/build; Frappe do Bench quản lý
-├── README.md
-└── order_management/                # package Python của app
-    ├── __init__.py                  # phiên bản app
-    ├── hooks.py                     # thông tin app / điểm mở rộng
-    ├── modules.txt                  # đăng ký module Order Management
-    ├── patches.txt                  # danh sách data migration, hiện chưa có
-    ├── public/                      # tài nguyên tĩnh, hiện chưa có
-    └── order_management/            # module nghiệp vụ Order Management
-        └── doctype/
-            └── simple_order/
-                ├── simple_order.json
-                ├── simple_order.py
-                └── test_simple_order.py
+```powershell
+.\start.ps1
 ```
 
-Hai thư mục `order_management` lồng nhau là quy ước **app → module** của Frappe.
-Các file `__init__.py` rỗng đánh dấu package Python; không chứa nghiệp vụ.
+- Đơn hàng: **http://localhost:8000/app/simple-order**.
+- Báo cáo: **http://localhost:8000/app/query-report/Daily%20Revenue**.
+- Tài khoản `Administrator`; mật khẩu trong `.cache/local-login.txt` (không đưa vào Git/ZIP).
+- Bench: `/home/vietanh/frappe-bench`; mã app liên kết với thư mục Windows hiện tại.
+- Log: `.cache/bench.log`, `.cache/bench.error.log`. Sửa JS xong dùng Ctrl + Shift + R.
+- Sửa JSON xong chạy `bench --site orders.localhost migrate` từ thư mục Bench.
 
-Đọc theo thứ tự:
+## Cài trên máy khác
 
-1. `simple_order.json`: `fieldname` là tên thuộc tính; `fieldtype` là loại dữ liệu;
-   `reqd` bắt buộc nhập; `read_only` chỉ đọc trên form.
-2. `simple_order.py`: lớp kế thừa `Document`; Frappe gọi `validate()` khi lưu.
-3. `test_simple_order.py`: ví dụ tạo, lưu, sửa và tải lại Document.
-4. `hooks.py`, `modules.txt`, `pyproject.toml`: cách app được đăng ký / đóng gói.
-
-Luồng lưu: **Form Desk → server Frappe → validate() → database → trả kết quả cho form**.
-`read_only` giúp giao diện; server vẫn tính lại `total` để không tin dữ liệu người dùng gửi.
-`customer_name`, `item_name` là hai trường tên đơn giản; chưa liên kết danh mục riêng.
-
-## Chạy app
-
-App này cần chạy **bên trong Frappe Bench**. Không chạy bằng `python simple_order.py`.
-Bench quản lý Frappe, app và site; một site có database/cấu hình riêng.
-
-### 1. Chuẩn bị môi trường Linux / WSL
-
-Trên Windows dùng Ubuntu trong WSL. Làm theo [hướng dẫn cài Frappe](https://docs.frappe.io/framework/user/en/installation),
-chọn dependency phù hợp **v15**, gồm Python, Node/Yarn, MariaDB, Redis và Bench CLI.
-Ví dụ chọn Python 3.12, Node 22 và MariaDB 10.6+ cho môi trường v15.
-Các lệnh bên dưới chạy trong terminal Ubuntu, sau khi các dependency đã sẵn sàng.
-Không dùng Python 3.14 cho môi trường v15 của dự án này.
-
-Nên để Bench trong filesystem Linux (`~/frappe-bench`), giữ mã nguồn đang học tại thư mục hiện tại.
+Chuẩn bị [môi trường Frappe v15](https://docs.frappe.io/framework/user/en/installation), Bench và dịch vụ MariaDB/Redis trước.
+Các lệnh sau chạy trong Linux/WSL tại thư mục Bench:
 
 ```bash
-bench init --frappe-branch version-15 --python python3.12 ~/frappe-bench
-cd ~/frappe-bench
+bench get-app <URL_REPOSITORY_CUA_APP>
 bench new-site orders.localhost
-bench get-app --soft-link /mnt/c/Users/CytekPC/OneDrive/Desktop/testegeg
 bench --site orders.localhost install-app order_management
-bench --site orders.localhost set-config developer_mode 1
-bench use orders.localhost
-bench start
+bench build
+bench start --procfile apps/order_management/Procfile.dev
 ```
 
-`bench new-site` yêu cầu tài khoản database và mật khẩu Administrator cho site.
-`get-app --soft-link` liên kết mã nguồn này vào Bench để sửa ở đây và chạy trong WSL.
-Không chạy `bench new-app order_management` nữa vì mã app đã có.
+Nếu site đã có, bỏ `new-site`. Tự đặt mật khẩu Administrator khi được hỏi.
+Hoàn thành setup wizard, chọn Vietnam, VND và Asia/Ho_Chi_Minh. Mở các URL localhost phía trên.
+Không cần ERPNext. `get-app` không tự cài toàn bộ hạ tầng.
 
-Mở `http://orders.localhost:8000/app`, đăng nhập bằng `Administrator` và mật khẩu vừa đặt.
-Nếu hostname không phân giải, thử `http://localhost:8000/app` sau khi đã `bench use orders.localhost`.
-Hoàn thành trình thiết lập lần đầu, chọn tiền tệ VND và múi giờ Asia/Ho_Chi_Minh.
-Tìm **Simple Order** trong thanh tìm kiếm của Desk, hoặc mở:
-
-```text
-http://orders.localhost:8000/app/simple-order
-```
-
-Nhấn **New**, nhập khách hàng, mặt hàng, số lượng `2`, đơn giá `150000`, rồi **Save**.
-Kết quả mong đợi: mã `ORD-00001` (trên database mới), thành tiền `300000`, trạng thái `Mới`.
-Thành tiền được cập nhật sau khi lưu, chưa có tính nháp trên trình duyệt.
-
-### 2. Sau khi sửa mã
-
-- Sửa controller `.py`: Bench ở chế độ dev thường tự tải lại mã server.
-- Sửa DocType `.json`: chạy lệnh dưới từ thư mục Bench rồi tải lại trang.
+Nếu nhận ZIP, giải nén vào thư mục riêng, tạo local Git repo trước khi lấy app:
 
 ```bash
-bench --site orders.localhost migrate
+cd /duong-dan/toi/thu-muc-da-giai-nen
+git init
+git add .
+git -c user.name="Local Demo" -c user.email="demo@example.invalid" commit -m "Initial app"
+cd ~/frappe-bench
+bench get-app --soft-link /duong-dan/toi/thu-muc-da-giai-nen
 ```
 
-### 3. Khi có repository để nộp
-
-Đẩy **thư mục chứa `pyproject.toml`** lên repo. Trên một Bench v15 đã sẵn sàng:
-
-```bash
-bench get-app <URL_REPOSITORY>
-bench --site <TEN_SITE> install-app order_management
-```
-
-Đổi `ERP Test` / `dev@example.com` trong `pyproject.toml` và `hooks.py` thành thông tin của bạn trước khi nộp.
+Sau đó dùng `new-site`, `install-app`, `build`, `start` như trên.
+`Procfile.dev` chọn site `orders.localhost`; đổi tên trong file nếu chọn site khác.
+`start.ps1` là tiện ích cho WSL trên máy hiện tại, không phải bộ cài đa nền tảng.
 
 ## Test
 
-Trên **site phát triển riêng**, trong terminal thứ hai tại `~/frappe-bench`
-(giữ `bench start` chạy ở terminal thứ nhất):
+Trên site phát triển riêng, giữ Bench/Redis đang chạy:
 
 ```bash
+cd ~/frappe-bench
 bench --site orders.localhost set-config allow_tests true
 bench --site orders.localhost run-tests --app order_management
+node apps/order_management/tests/simple-order-form.test.cjs
 ```
 
-Test cần Frappe + database + Redis; không chạy trực tiếp bằng `python -m unittest` trên Windows.
+**14 test server đã qua:** kiểm tra/tính tiền, chuyển trạng thái, khóa sửa/xóa, tab cũ, báo cáo theo ngày tạo và quyền xem báo cáo.
+Test Node kiểm tra tính nháp, khóa form, nút thao tác và khôi phục trạng thái khi lưu lỗi.
+Đã kiểm tra cài app trên site sạch và build wheel thành công; site thử nghiệm đã được dọn sau kiểm tra.
 
-## Giả định cho bước khởi tạo
+Test trình duyệt từ Windows (tạo thêm 2 đơn demo mỗi lần chạy):
 
-- Khách hàng / mặt hàng nhập tên, không có bảng danh mục riêng.
-- Số lượng cho phép lẻ, tối đa 3 chữ số thập phân; đơn giá và thành tiền 2 chữ số.
-- Dùng cách làm tròn của Frappe; tiền tệ lấy theo cấu hình site.
-- Chỉ cấp thao tác cho System Manager / Administrator trong môi trường học;
-  chưa cấp quyền xóa đơn và chưa thiết kế vai trò nghiệp vụ riêng.
-- Trạng thái luôn được server đặt về `Mới`; bước tiếp theo sẽ thay bằng quy tắc chuyển trạng thái.
+```powershell
+npm install --prefix .cache/ui --no-save --no-package-lock playwright@1.65.1
+node .cache/ui/node_modules/playwright/cli.js install chromium --only-shell
+$env:NODE_PATH = Join-Path $PWD '.cache/ui/node_modules'
+node tests/e2e.cjs
+```
 
-## Tình trạng kiểm chứng khi khởi tạo
+Dùng mật khẩu trong `.cache/local-login.txt` và browser headless có profile riêng.
+Đã qua luồng tạo đơn → giao/hủy → khóa form → chặn sửa qua API → báo cáo.
 
-Mã nguồn được tạo theo cấu trúc app Frappe v15.
-Đã kiểm tra cú pháp Python và cấu trúc JSON/TOML của package bằng Python 3.12.
-Chưa xác nhận cài và chạy trên site thực: Docker Engine chưa chạy,
-và lệnh liệt kê WSL bị từ chối truy cập trong phiên khởi tạo.
-Thử đóng gói wheel cũng chưa hoàn tất vì phiên này không kết nối được PyPI
-để tải `flit_core` (build backend), không phải lỗi đã xác định trong mã app.
-Các test Frappe cần được chạy bằng các lệnh ở trên khi có môi trường.
+## Ảnh minh họa
 
-## Bước tiếp theo
+1. [Tạo đơn, tính tiền nháp](docs/screenshots/01-create-order.png).
+2. [Đã giao, khóa sửa](docs/screenshots/02-delivered-order.png).
+3. [Đã hủy, khóa sửa](docs/screenshots/03-cancelled-order.png).
+4. [Doanh thu theo ngày](docs/screenshots/04-daily-revenue.png).
 
-1. Chạy thử form, hiểu sự liên kết giữa JSON, Python và database.
-2. Thêm chuyển `Mới → Đã giao / Hủy`, khóa sửa tại server và test.
-3. Thêm báo cáo doanh thu theo ngày tạo, chỉ lấy đơn đã giao.
-4. Cài thử trên site sạch, chụp ảnh và hoàn thiện README bài nộp.
+## Giả định và giới hạn
 
-Tham khảo: [DocType](https://docs.frappe.io/framework/user/en/basics/doctypes),
-[Controller](https://docs.frappe.io/framework/user/en/basics/doctypes/controllers),
-[tạo app](https://docs.frappe.io/framework/user/en/tutorial/create-an-app).
+- Khách hàng/mặt hàng nhập tên, mỗi đơn một mặt hàng; chưa tách danh mục riêng.
+- Số lượng 3 chữ số thập phân, đơn giá/thành tiền 2 chữ số; dùng cách làm tròn của Frappe.
+- Ngày báo cáo theo `creation` và múi giờ site. Chỉ hiện ngày có đơn Đã giao.
+- Quyền dành cho System Manager/Administrator; không cấp quyền xóa cho System Manager.
+  Kể cả Administrator cũng không được xóa đơn kết thúc qua thao tác Document thông thường.
+- Cho phép sửa dữ liệu và kết thúc đơn trong cùng lần lưu khi trạng thái cũ vẫn là Mới.
+- Cấu hình chạy hiện tại dành cho phát triển cục bộ; hosting/production chưa thuộc bản bàn giao này.
+- Metadata tác giả còn là `ERP Test` / `dev@example.com` trong `hooks.py` và `pyproject.toml`; thay trước khi nộp.
+
+## Đọc code từ .NET
+
+- `simple_order.json`: Entity + mapping + metadata form.
+- `simple_order.py`: nghiệp vụ/validation trước khi lưu Document.
+- `simple_order.js`: hành vi form; `simple_order_list.js`: nút/nhãn ở danh sách.
+- `report/daily_revenue/`: khai báo báo cáo và truy vấn tổng hợp.
+- [Hướng dẫn FE từng bước](docs/frappe-frontend.md).

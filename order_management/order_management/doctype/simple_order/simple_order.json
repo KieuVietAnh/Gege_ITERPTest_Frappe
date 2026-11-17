@@ -54,7 +54,7 @@
       "fieldname": "status",
       "fieldtype": "Select",
       "label": "Trạng thái",
-      "options": "Mới",
+      "options": "Mới\nĐã giao\nHủy",
       "default": "Mới",
       "read_only": 1,
       "in_list_view": 1,

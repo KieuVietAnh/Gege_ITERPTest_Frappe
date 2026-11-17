@@ -8,6 +8,15 @@ from frappe.utils import flt
 
 class SimpleOrder(Document):
     def validate(self):
+        previous = self.get_doc_before_save()
+        if previous and previous.status in ("Đã giao", "Hủy"):
+            frappe.throw(_("Đơn đã giao hoặc đã hủy không được sửa hay đổi trạng thái."))
+
+        if self.is_new():
+            self.status = "Mới"
+        elif self.status not in ("Mới", "Đã giao", "Hủy"):
+            frappe.throw(_("Trạng thái đơn hàng không hợp lệ."))
+
         self.quantity = flt(self.quantity, 3)
         self.unit_price = flt(self.unit_price, 2)
 
@@ -22,5 +31,6 @@ class SimpleOrder(Document):
             frappe.throw(_("Thành tiền vượt quá phạm vi cho phép."))
         self.total = flt(total, 2)
 
-        # shortcut: only new orders are supported; add transitions in the next lesson.
-        self.status = "Mới"
+    def on_trash(self):
+        if self.status in ("Đã giao", "Hủy"):
+            frappe.throw(_("Không được xóa đơn đã giao hoặc đã hủy."))
