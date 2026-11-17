@@ -1,5 +1,6 @@
 import frappe
 from frappe.tests.utils import FrappeTestCase
+from order_management.test_utils import make_item
 
 
 class TestSimpleOrder(FrappeTestCase):
@@ -8,7 +9,7 @@ class TestSimpleOrder(FrappeTestCase):
             {
                 "doctype": "Simple Order",
                 "customer_name": "Khách thử nghiệm",
-                "item_name": "Bàn phím",
+                "item": make_item().name,
                 "quantity": 2,
                 "unit_price": 150000,
                 **values,
@@ -50,7 +51,7 @@ class TestSimpleOrder(FrappeTestCase):
                         self.make_order(**{field: value}).validate()
 
     def test_requires_customer_and_item(self):
-        for field in ("customer_name", "item_name"):
+        for field in ("customer_name", "item"):
             with self.subTest(field=field):
                 with self.assertRaises(frappe.MandatoryError):
                     self.make_order(**{field: ""}).insert()

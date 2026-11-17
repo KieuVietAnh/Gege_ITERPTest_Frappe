@@ -1,3 +1,4 @@
 [pre_model_sync]
 
 [post_model_sync]
+order_management.patches.link_legacy_items

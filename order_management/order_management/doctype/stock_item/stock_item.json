@@ -1,0 +1,26 @@
+{
+  "doctype": "DocType",
+  "name": "Stock Item",
+  "module": "Order Management",
+  "engine": "InnoDB",
+  "autoname": "field:item_code",
+  "field_order": ["item_code", "item_name", "unit", "default_unit_price", "stock_qty", "enabled"],
+  "fields": [
+    {"fieldname": "item_code", "fieldtype": "Data", "label": "Mã mặt hàng", "reqd": 1, "unique": 1, "set_only_once": 1, "in_list_view": 1},
+    {"fieldname": "item_name", "fieldtype": "Data", "label": "Tên mặt hàng", "reqd": 1, "in_list_view": 1},
+    {"fieldname": "unit", "fieldtype": "Data", "label": "Đơn vị tính", "reqd": 1, "default": "Cái"},
+    {"fieldname": "default_unit_price", "fieldtype": "Currency", "label": "Giá bán mặc định", "precision": "2", "default": "0", "reqd": 1, "in_list_view": 1},
+    {"fieldname": "stock_qty", "fieldtype": "Float", "label": "Tồn kho", "precision": "3", "read_only": 1, "default": "0", "in_list_view": 1},
+    {"fieldname": "enabled", "fieldtype": "Check", "label": "Đang sử dụng", "default": "1", "in_standard_filter": 1}
+  ],
+  "permissions": [
+    {"role": "Administrator", "create": 1, "read": 1, "write": 1, "print": 1},
+    {"role": "Order Warehouse", "create": 1, "read": 1, "write": 1, "print": 1},
+    {"role": "Order Sales", "read": 1}
+  ],
+  "title_field": "item_name",
+  "search_fields": "item_name,item_code",
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "track_changes": 1
+}

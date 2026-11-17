@@ -23,7 +23,7 @@ server Frappe để kiểm tra đăng nhập, quyền và nghiệp vụ trước
 không dùng Workspace Users làm điểm bắt đầu.**
 
 Mình đã kiểm tra metadata của site: Users thuộc module **Core**;
-Simple Order thuộc module **Order Management**. Hiện chưa có Workspace riêng cho Order Management.
+Simple Order thuộc module **Order Management**. Workspace **Order Management** hiện có tại `/app/order-management`, gồm đơn hàng, mặt hàng/tồn kho, nhập kho và báo cáo theo quyền.
 
 ## 2. Frappe gồm những gì?
 
@@ -105,13 +105,15 @@ Phần mới mình bổ sung là một app tên `order_management`, có:
 4. Tùy biến danh sách: màu trạng thái và nút mở báo cáo.
 5. Báo cáo **Daily Revenue**: đếm và cộng tiền các đơn đã giao theo ngày tạo.
 6. Test tự động cho các quy tắc trên.
+7. DocType **Stock Item**, **Stock Receipt**: danh mục mặt hàng và nhập kho; đơn Đã giao tự trừ tồn trong cùng transaction.
+8. Role **Order Sales**, **Order Warehouse**: đơn theo người tạo/người xử lý; chỉ Administrator xem toàn bộ đơn và doanh thu.
 
 Tất cả được **cài vào cùng site và dùng cùng Desk**, nên các màn hình có cùng thanh menu, kiểu form và nút.
 Việc giao diện giống màn hình User là do tái sử dụng giao diện của framework.
 
-Hiện app chưa có Workspace/trang chủ mang tên Order Management trên sidebar.
-Module Order Management đã có, nhưng một module không tự đồng nghĩa với một Workspace được thiết kế riêng.
-Các điểm vào của bài test hiện là URL đơn hàng, thanh tìm kiếm Desk và nút báo cáo.
+Mở [Workspace Order Management](http://localhost:8080/app/order-management) để vào các chức năng của app.
+Workspace được khai báo trong mã app, không tự sinh chỉ vì có Module. Các shortcut hiển thị theo quyền người dùng.
+Luồng Sale – Kho và tài khoản demo: [HUONG-DAN-TEST.md](HUONG-DAN-TEST.md).
 
 ## 5. Thử mở đúng phần mình đã làm
 
@@ -156,16 +158,22 @@ Ví dụ định nghĩa field trong [simple_order.json](order_management/order_m
 Frappe hiểu field này tên `quantity`, có nhãn Số lượng, dùng control số và bắt buộc nhập.
 App không cần tự viết một thẻ HTML `<input>` riêng cho nó.
 
-Với hai DocType đang nói tới:
+Một số DocType và bảng tương ứng:
 
 | DocType | Bảng MariaDB thông thường tương ứng | Màn hình danh sách |
 | --- | --- | --- |
 | User | `tabUser` | `/app/user` |
 | Simple Order | `tabSimple Order` | `/app/simple-order` |
+| Stock Item | `tabStock Item` | `/app/stock-item` |
+| Stock Receipt | `tabStock Receipt` | `/app/stock-receipt` |
 
 Tên bảng có tiền tố `tab` là quy ước của Frappe.
 Không phải mọi loại DocType đều ánh xạ thành một bảng độc lập như vậy: Frappe còn có Single/Virtual DocType.
-Bảng trên đang nói riêng về User và Simple Order của dự án này.
+Các DocType trong bảng trên đều là DocType thông thường của dự án này.
+
+`Stock Item` chính là bảng mặt hàng của app. Field `item` trên đơn/phiếu nhập là kiểu Link tới
+Stock Item, gần với khóa tham chiếu khi dùng EF Core. `Stock Receipt` lưu chứng từ nhập;
+`stock.py` cập nhật tồn trong transaction khi nhập hoặc xác nhận Đã giao.
 
 Một đơn cụ thể có thể được hình dung như:
 

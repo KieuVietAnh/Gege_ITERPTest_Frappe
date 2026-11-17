@@ -1,0 +1,50 @@
+{
+  "doctype": "Workspace",
+  "name": "Order Management",
+  "label": "Order Management",
+  "title": "Order Management",
+  "module": "Order Management",
+  "public": 1,
+  "is_hidden": 0,
+  "icon": "list",
+  "sequence_id": 1,
+  "roles": [
+    {
+      "role": "Administrator"
+    },
+    {
+      "role": "Order Sales"
+    },
+    {
+      "role": "Order Warehouse"
+    }
+  ],
+  "shortcuts": [
+    {
+      "label": "Đơn hàng",
+      "type": "DocType",
+      "link_to": "Simple Order",
+      "doc_view": "List"
+    },
+    {
+      "label": "Mặt hàng và tồn kho",
+      "type": "DocType",
+      "link_to": "Stock Item",
+      "doc_view": "List"
+    },
+    {
+      "label": "Nhập kho",
+      "type": "DocType",
+      "link_to": "Stock Receipt",
+      "doc_view": "List"
+    },
+    {
+      "label": "Doanh thu",
+      "type": "Report",
+      "link_to": "Daily Revenue",
+      "is_query_report": 1,
+      "ref_doctype": "Simple Order"
+    }
+  ],
+  "content": "[{\"id\":\"orders-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Đơn hàng và kho</b></span>\",\"col\":12}},{\"id\":\"shortcut-0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Đơn hàng\",\"col\":3}},{\"id\":\"shortcut-1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mặt hàng và tồn kho\",\"col\":3}},{\"id\":\"shortcut-2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Nhập kho\",\"col\":3}},{\"id\":\"shortcut-3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Doanh thu\",\"col\":3}}]"
+}

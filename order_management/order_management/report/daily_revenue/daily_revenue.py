@@ -3,6 +3,8 @@ from frappe import _
 
 
 def execute(filters=None):
+    if frappe.session.user != "Administrator":
+        frappe.throw(_("Chỉ Admin được xem doanh thu toàn hệ thống."), frappe.PermissionError)
     frappe.has_permission("Simple Order", "report", throw=True)
     columns = [
         {"fieldname": "order_date", "label": _("Ngày tạo đơn"), "fieldtype": "Date", "width": 160},

@@ -1,243 +1,127 @@
-# Hướng dẫn tài khoản và kiểm thử Order Management
+# Hướng dẫn test Sale – Kho
 
-Hướng dẫn cho bản Docker local, site `orders.localhost`, cổng 8080.
-Không cần tài khoản AWS để sử dụng app cục bộ.
+Chạy tại thư mục repo: `docker compose up -d --build --wait`.
+Bản Docker local dùng http://localhost:8080.
 
-## 1. Tài khoản nào dùng để test?
+## Tài khoản demo
 
-Danh sách tài khoản đã kiểm tra trực tiếp trên site:
-
-| Tài khoản | Mật khẩu | Dùng để làm gì? |
+| Tài khoản | Mật khẩu | Vai trò |
 | --- | --- | --- |
-| `Administrator` | `admin` | Đăng nhập Desk, tạo/sửa đơn Mới, giao/hủy đơn, xem báo cáo |
-| `Guest` | Không có | Đại diện cho người chưa đăng nhập; không dùng để đăng nhập và không được xem dữ liệu đơn hàng/báo cáo |
+| `Administrator` | `admin` | Xem mọi đơn, quản lý kho và xem báo cáo |
+| `sale1@example.com`, `sale2@example.com` | `SaleDemo@12345!` | Order Sales: chỉ quản lý đơn mình tạo |
+| `kho1@example.com`, `kho2@example.com` | `KhoDemo@12345!` | Order Warehouse: chỉ xử lý đơn được phân công; quản lý danh mục/nhập kho |
+| `Guest` | Không có | Chưa đăng nhập, không truy cập dữ liệu |
 
-**Hiện chỉ có một tài khoản đăng nhập để test: `Administrator`.**
-Chưa tạo tài khoản riêng cho nhân viên/kế toán; đề không yêu cầu quy trình duyệt giữa nhiều vai trò.
-`System Manager` là **vai trò được cấp quyền trong app**, không phải tên tài khoản.
+Seed tự tạo các tài khoản này khi install/migrate ở cả Bench và Docker. Khi chạy lại, không reset mật khẩu đã đổi,
+không bổ sung lại tồn đã dùng. Đổi mật khẩu demo trước khi mở web công khai.
+Admin tạo thêm System User và cấp `Order Sales` hoặc `Order Warehouse` tại màn hình User.
+Role `System Manager` riêng lẻ không có quyền xem toàn bộ đơn/doanh thu của app.
 
-Phân biệt để tránh nhập nhầm:
+Dùng cửa sổ/profile trình duyệt riêng cho mỗi tài khoản để tránh đăng nhập đè phiên.
 
-- `Administrator`: tài khoản của ứng dụng web Frappe.
-- `vietanh`: user của Ubuntu WSL, không phải tài khoản web.
-- `ERP Test` / `dev@example.com`: metadata tác giả trong mã nguồn, không phải tài khoản web.
-- Tài khoản database cũng không dùng để đăng nhập màn hình web.
+## Các màn hình
 
-`admin` là mật khẩu demo cho bản Docker chỉ mở ở localhost. Nếu cài app bằng Bench,
-dùng mật khẩu Administrator tự đặt lúc chạy `bench new-site`. Bản WSL cũ ở cổng 8000
-vẫn có database và mật khẩu riêng trong `.cache/local-login.txt`.
-
-## 2. Khởi động và đăng nhập
-
-Mở PowerShell tại thư mục dự án:
-
-```powershell
-cd C:\Users\CytekPC\OneDrive\Desktop\testegeg
-docker compose up -d --build --wait
-```
-
-Sau khi Compose báo các dịch vụ healthy:
-
-1. Mở [màn hình đăng nhập](http://localhost:8080/login).
-2. Username/email: nhập `Administrator`.
-3. Password: nhập `admin`.
-4. Bấm **Login**. Nếu trình duyệt đã đăng nhập thì có thể mở danh sách đơn luôn.
-
-Hai màn hình chính:
-
-| Màn hình | Địa chỉ |
+| Chức năng | URL |
 | --- | --- |
-| Danh sách đơn hàng | http://localhost:8080/app/simple-order |
-| Báo cáo doanh thu | http://localhost:8080/app/query-report/Daily%20Revenue |
+| Trang chính app | http://localhost:8080/app/order-management |
+| Đơn hàng | http://localhost:8080/app/simple-order |
+| Mặt hàng và tồn kho | http://localhost:8080/app/stock-item |
+| Phiếu nhập | http://localhost:8080/app/stock-receipt |
+| Doanh thu (Admin) | http://localhost:8080/app/query-report/Daily%20Revenue |
 
-Nếu giao diện còn mã cũ sau khi sửa code, nhấn **Ctrl + Shift + R**.
+Danh mục demo có `KB001` (Bàn phím, giá 150.000), `MS001` (Chuột, giá 200.000).
+Mỗi mã được nhập 20 cái khi tạo lần đầu; số tồn hiện tại phụ thuộc các thao tác đã thực hiện.
+Hai đơn Mới `DEMO-ORD-001` và `DEMO-ORD-002` đã phân công sẵn: Sale 1/Kho 1 và Sale 2/Kho 2.
+Dữ liệu nằm trong `order_management/seed.sql`, chạy qua `order_management.demo.setup` bằng ORM Frappe.
+Seed không đặt lại trạng thái của các đơn đã được người dùng xử lý.
 
-## 3. Luồng nghiệp vụ cần nhớ
+## Luồng demo từ đầu
 
-```text
-Đăng nhập → Tạo đơn → Save → Mới
-                              ├── Sửa dữ liệu → Save → vẫn Mới
-                              ├── Đã giao → xác nhận Yes → khóa đơn → tính vào báo cáo
-                              └── Hủy     → xác nhận Yes → khóa đơn → không tính vào báo cáo
-```
+1. Đăng nhập Kho 1, mở **Mặt hàng và tồn kho**, tạo mã riêng, ví dụ `DEMO-001`.
+   Nhập tên, đơn vị Cái, giá bán mặc định 150000. Save: tồn ban đầu bằng 0.
+2. Trên mặt hàng, bấm **Nhập kho**, nhập số lượng 10 và Save.
+   Phiếu đã lưu chỉ đọc, mặt hàng có tồn 10.
+3. Đăng nhập Sale 1, tạo Simple Order: khách hàng `Khách thử`, chọn `DEMO-001`,
+   số lượng 2. Giá tự điền 150000, thành tiền nháp 300000. Chọn người xử lý kho `kho1@example.com`, Save.
+4. Đơn ở **Mới**. Sale 1 được sửa thông tin hoặc Hủy, không có nút Đã giao và không xem doanh thu.
+5. Đăng nhập Sale 2: không thấy đơn của Sale 1. Kho 2 cũng không thấy đơn giao cho Kho 1.
+   Mở URL trực tiếp của đơn bằng hai tài khoản này cũng bị từ chối.
+6. Đăng nhập Kho 1, mở đơn được phân công. Giá/số lượng/khách hàng chỉ đọc.
+   Bấm **Đã giao**, xác nhận Yes. Đơn khóa sửa, tồn còn 8.
+7. Admin mở báo cáo: tăng 1 đơn và 300000 ở **ngày tạo đơn**.
+   Cả Sale và Kho mở URL báo cáo hoặc gọi API báo cáo đều bị từ chối.
 
-| Trạng thái | Sửa dữ liệu | Đổi trạng thái | Tính doanh thu |
-| --- | --- | --- | --- |
-| Mới | Có | Sang Đã giao hoặc Hủy | Không |
-| Đã giao | Không | Không | Có, theo ngày tạo đơn |
-| Hủy | Không | Không | Không |
+## Hủy và phân công lại
 
-**Trạng thái là trường chỉ đọc.** Để đổi trạng thái, dùng nút **Đã giao** hoặc **Hủy** trên đầu form.
-Hai nút này chỉ xuất hiện sau khi đơn mới đã được lưu lần đầu.
+- Sale tạo một đơn Mới khác rồi Hủy. Tồn và doanh thu không đổi.
+- Khi còn Mới, Sale có thể đổi người xử lý kho từ Kho 1 sang Kho 2.
+  Kho 1 mất quyền; Kho 2 nhận quyền. Tab cũ không được ghi đè hoặc tự nhận lại đơn.
+- Đơn Đã giao/Hủy khóa với mọi người, kể cả Admin. Không mở lại, không xóa đơn kết thúc.
+- Không có bước duyệt hoặc trạng thái Đang giao: giữ ba trạng thái theo đề bài.
 
-## 4. Ghi nhận báo cáo ban đầu
+## Kiểm tra kho và dữ liệu sai
 
-Trước khi tạo thêm đơn, mở báo cáo và ghi lại số đơn / doanh thu của hôm nay.
-Các bước test bên dưới so sánh phần **tăng thêm**, tránh nhầm dữ liệu demo cũ.
-
-Database Docker mới tạo ban đầu không có đơn. Browser test tạo hai đơn demo mỗi lần chạy.
-Không đối chiếu mã đơn hoặc số tổng của bản WSL cũ với bản Docker; hãy ghi số đầu kỳ thực tế.
-
-## 5. Test tạo đơn và sửa khi còn Mới
-
-1. Mở danh sách đơn, bấm **Add Simple Order** (hoặc **New** tùy vị trí hiển thị).
-2. Nhập:
-
-   | Trường | Giá trị |
-   | --- | --- |
-   | Khách hàng | TEST - Giao hàng |
-   | Mặt hàng | Bàn phím |
-   | Số lượng | 2 |
-   | Đơn giá | 150000 |
-
-3. Nhấn **Tab** hoặc click ra khỏi ô đơn giá để chốt thay đổi.
-4. Thành tiền nháp phải là **300.000**, trạng thái **Mới**.
-5. Bấm **Save**, ghi lại mã `ORD-xxxxx` mà hệ thống tạo.
-6. Đổi số lượng thành `3`, nhấn Tab: thành tiền nháp phải thành **450.000**.
-7. Bấm Save, tải lại trang: số lượng vẫn `3`, thành tiền vẫn **450.000**, trạng thái vẫn Mới.
-8. Kiểm tra báo cáo: đơn này **chưa** được tính vào doanh thu.
-
-Kết quả cần đạt:
-
-- Không nhập tay được thành tiền; server vẫn tự tính lại khi lưu.
-- Khi còn Mới, khách hàng, mặt hàng, số lượng và đơn giá vẫn sửa được.
-- Đơn mới được gán trạng thái Mới tại server.
-
-## 6. Test dữ liệu sai
-
-Dùng **một đơn Mới riêng** để thử, không thử sửa đơn đã kết thúc.
-Mỗi lần thử một trường hợp, bấm Save rồi sửa về giá trị hợp lệ trước khi thử tiếp.
-
-| Trường hợp | Kết quả mong đợi |
+| Thử | Kết quả |
 | --- | --- |
-| Bỏ trống khách hàng | Không lưu được; thông báo trường bắt buộc |
-| Bỏ trống mặt hàng | Không lưu được; thông báo trường bắt buộc |
-| Số lượng = 0 | Không lưu được |
-| Số lượng = -1 | Không lưu được |
-| Đơn giá = 0 | Không lưu được |
-| Đơn giá = -1 | Không lưu được |
-| Số lượng = 1,5; đơn giá = 10,25 | Lưu hợp lệ; thành tiền 15,38 theo cách làm tròn hiện tại |
+| Nhập kho số lượng 0, âm hoặc không hữu hạn | Từ chối, tồn không đổi |
+| Sửa trực tiếp tồn qua form/API | Từ chối; phải nhập bằng phiếu hoặc xuất bằng đơn |
+| Sửa/xóa phiếu nhập đã lưu | Từ chối |
+| Sale tạo mặt hàng hoặc phiếu nhập | Từ chối; Sale chỉ đọc danh mục và tồn |
+| Phân công cho tài khoản Sale, tài khoản bị khóa hoặc không có role Kho | Từ chối |
+| Sale tự đổi trạng thái Đã giao qua API | Từ chối |
+| Kho sửa giá/số lượng hoặc tự đổi người xử lý qua API | Từ chối |
+| Xuất số lượng lớn hơn tồn | Từ chối; đơn vẫn Mới, tồn không đổi |
+| Xác nhận lại đơn đã giao | Từ chối; không trừ tồn lần hai |
+| Hai đơn cùng xuất lượng hàng cuối | Chỉ một thành công; đơn còn lại vẫn Mới, không âm kho |
 
-Nhập dấu thập phân theo cách hiển thị trên form. Với cấu hình hiện tại,
-form có thể hiển thị `150.000,00` thay vì `150000.00`.
-Thông báo ở trình duyệt không phải bằng chứng duy nhất: các test server/API ở cuối file cũng kiểm tra việc từ chối dữ liệu sai.
+Số lượng có 3 chữ số thập phân, tiền có 2 chữ số. Giá trên đơn có thể điều chỉnh bởi Sale
+khi đơn còn Mới; thành tiền cuối cùng luôn tính ở server.
 
-## 7. Test giao hàng và khóa đơn
+## Race condition và transaction
 
-Dùng đơn **TEST - Giao hàng** ở mục 5, hiện có số lượng 3, thành tiền 450.000.
+Frappe khóa dòng đơn trước khi kiểm tra bản lưu mới nhất. Quyền xử lý được kiểm tra từ dữ liệu
+đã lưu, không dựa vào người tạo/người xử lý giả mạo trong request.
 
-1. Mở đơn đã lưu, kiểm tra trạng thái còn **Mới**.
-2. Bấm nút **Đã giao** trên đầu form.
-3. Hộp xác nhận cho biết sau khi lưu sẽ không sửa được nữa; bấm **Yes**.
-4. Chờ lưu xong và hộp xác nhận đóng.
-5. Kiểm tra:
-   - Trạng thái **Đã giao**, có thông báo `Đơn đã kết thúc, chỉ được xem.`
-   - Các trường nhập chuyển sang chỉ đọc.
-   - Không còn nút Save, Đã giao hoặc Hủy.
-6. Tải lại trang: đơn vẫn Đã giao và chỉ đọc.
-7. Bấm **Doanh thu theo ngày** để xem báo cáo.
+Nhập/xuất khóa dòng mặt hàng bằng `SELECT ... FOR UPDATE`. Kiểm tra tồn, trừ/cộng tồn và lưu
+chứng từ cùng transaction; không commit giữa chừng. Nếu thiếu hàng hoặc lưu lỗi, request rollback.
+Các test dùng hai kết nối DB độc lập và hai request HTTP đồng thời để kiểm tra hành vi thực tế.
 
-Kết quả báo cáo: so với trước khi giao đơn này, **tăng 1 đơn và tăng 450.000**
-tại ngày tạo của đơn. Nếu bắt đầu từ database chưa có doanh thu,
-kết quả mới sẽ là **1 đơn / 450.000**.
+Đơn Mới không giữ chỗ tồn. Phiên bản đầu chỉ có một kho chung; chưa có hoàn hàng,
+điều chỉnh tồn, nhiều kho, lô hoặc hạn sử dụng.
 
-**Không dùng một đơn đã giao để thử lại luồng hủy.** Đó là chuyển trạng thái bị cấm;
-muốn thử hủy hãy tạo đơn mới ở bước tiếp theo.
+## Test tự động
 
-## 8. Test hủy đơn
+Test server, JavaScript và khởi tạo Docker:
 
-1. Tạo đơn khác: khách hàng `TEST - Hủy đơn`, mặt hàng `Chuột`, số lượng `1`, đơn giá `200000`.
-2. Bấm Save; đơn phải ở trạng thái **Mới**, thành tiền **200.000**.
-3. Bấm **Hủy**, xác nhận **Yes**.
-4. Chờ lưu xong: trạng thái Hủy, các trường chỉ đọc và không còn nút Save/chuyển trạng thái.
-5. Tải lại đơn: trạng thái vẫn Hủy.
-6. Mở báo cáo: số đơn và doanh thu **không tăng** do đơn hủy này.
-
-Đơn đã hủy cũng không được đổi lại thành Mới hoặc Đã giao.
-App không cung cấp chức năng xóa để làm lại bài test; hãy tạo một đơn khác.
-
-## 9. Test hai tab cùng sửa một đơn
-
-1. Tạo một đơn Mới riêng, lưu lại và mở đúng URL đơn đó ở hai tab A/B.
-2. Tab A: bấm Đã giao và xác nhận thành công.
-3. Tab B: vẫn giữ dữ liệu cũ, sửa số lượng rồi bấm Save.
-4. Mong đợi: bị từ chối vì dữ liệu đã được cập nhật; thông báo có thể là
-   `Document has been modified after you have opened it`.
-5. Tải lại tab B: trạng thái Đã giao, dữ liệu đúng theo bản đã lưu và form bị khóa.
-
-Không được xảy ra tình huống tab B đưa đơn về Mới hoặc ghi đè dữ liệu đã giao.
-Đơn được giao thêm trong mục này cũng sẽ làm tăng báo cáo; nhớ tính phần tăng thêm đó khi đối chiếu.
-
-## 10. Hiểu báo cáo theo ngày tạo đơn
-
-- Chỉ cộng **Đã giao**; không cộng Mới hoặc Hủy.
-- `Số đơn đã giao` là số đơn, không phải tổng số lượng mặt hàng.
-- Mỗi ngày một dòng; ngày không có đơn đã giao sẽ không hiện dòng.
-- Lấy ngày của `creation` theo múi giờ site `Asia/Ho_Chi_Minh`, không lấy ngày sửa hay ngày giao.
-- Ví dụ đơn tạo **16/11**, giao **17/11** thì được tính vào dòng **16/11**.
-
-Không có ô nhập ngày tạo trên form. Trường hợp tạo/giao khác ngày và ranh giới 23:59:59/00:00:00
-đã được kiểm tra trong test server bằng dữ liệu fixture riêng.
-
-## 11. Test quyền của người chưa đăng nhập
-
-1. Mở cửa sổ ẩn danh hoặc trình duyệt chưa đăng nhập app.
-2. Truy cập URL danh sách đơn hoặc báo cáo.
-3. Mong đợi: yêu cầu đăng nhập / từ chối truy cập, không hiển thị dữ liệu đơn hàng hoặc doanh thu.
-4. Không nhập `Guest` như một tài khoản để đăng nhập.
-
-Hiện không có luồng nhân viên gửi duyệt rồi quản lý phê duyệt; đây là một app đơn hàng nhỏ theo đề.
-
-## 12. Chạy test tự động nếu muốn kiểm tra server/API
-
-Lệnh sau chạy trong PowerShell tại thư mục dự án, sau khi Compose đã chạy:
-
-```powershell
+```bash
 docker compose exec -T backend bash apps/order_management/docker/test.sh
 ```
 
-Đã có **14 test server** cho dữ liệu, tính tiền, chuyển trạng thái, khóa sửa/xóa,
-tab cũ, báo cáo theo ngày tạo và quyền xem báo cáo.
-Test Node kiểm tra tính nháp, khóa form và xử lý khi lưu thất bại.
-
-Test trình duyệt đầy đủ, bao gồm gọi API cố sửa đơn đã giao:
+Browser test từ PowerShell, dùng Chrome headless riêng:
 
 ```powershell
 npm install --prefix .cache/ui --no-save --no-package-lock playwright@1.65.1
 node .cache/ui/node_modules/playwright/cli.js install chromium --only-shell
 $env:NODE_PATH = Join-Path $PWD '.cache/ui/node_modules'
 node tests/e2e.cjs
+node tests/rbac-stock-e2e.cjs
 ```
 
-Đây là test dành cho môi trường phát triển; mỗi lần chạy browser test sẽ tạo thêm **2 đơn demo**,
-một Đã giao và một Hủy, nên doanh thu sẽ tăng tương ứng. Test cũng chụp lại ảnh trong `docs/screenshots/`.
+Browser test tạo thêm dữ liệu demo thật và chụp ảnh trong `docs/screenshots/`.
+Test server bao gồm phân quyền, dữ liệu sai, tính tiền, báo cáo, rollback và xử lý đồng thời.
+Script dùng `CI=1` để Bench trả exit code lỗi khi có test fail.
 
-## 13. Checklist demo nhanh khi phỏng vấn
+## Đọc code
 
-- [ ] Đăng nhập Administrator.
-- [ ] Tạo đơn Mới; đổi số lượng và chỉ ra thành tiền nháp.
-- [ ] Save; giải thích server kiểm tra và tính tiền lại.
-- [ ] Thử dữ liệu 0 hoặc âm; chỉ ra lỗi và sửa lại hợp lệ.
-- [ ] Giao một đơn; tải lại để chứng minh khóa sửa.
-- [ ] Hủy một đơn khác; chứng minh không cộng doanh thu.
-- [ ] Mở báo cáo; đối chiếu số đơn và số tiền tăng thêm.
-- [ ] Giải thích báo cáo dùng ngày tạo đơn.
-- [ ] Mở `simple_order.py`, `simple_order.js` và `daily_revenue.py` để chỉ ra nơi xử lý.
+- `permissions.py`: giới hạn danh sách và từng đơn, tìm người xử lý kho.
+- `doctype/simple_order/`: đơn hàng, chuyển trạng thái, kiểm tra người thao tác.
+- `doctype/stock_item/`: danh mục mặt hàng, bảo vệ tồn.
+- `doctype/stock_receipt/`: nhập kho; phiếu đã lưu bất biến.
+- `stock.py`: cập nhật tồn có khóa dòng, không tự commit.
+- `test_stock_concurrency.py`: hai kết nối database chạy cùng lúc.
+- [Luồng và ma trận quyền](docs/rbac-flow.md).
 
-Ảnh đã chuẩn bị: [Tạo đơn](docs/screenshots/01-create-order.png),
-[Đã giao](docs/screenshots/02-delivered-order.png), [Hủy](docs/screenshots/03-cancelled-order.png),
-[Báo cáo](docs/screenshots/04-daily-revenue.png).
-
-## 14. Nếu gặp vấn đề
-
-| Hiện tượng | Kiểm tra |
-| --- | --- |
-| Không mở được localhost:8080 | Chạy `docker compose up -d --build --wait`; xem `docker compose ps -a` và `docker compose logs initialize backend frontend` nếu có lỗi |
-| Sai mật khẩu | Docker mới dùng `Administrator` / `admin`; nếu đã đổi mật khẩu thì dùng mật khẩu đã đổi |
-| Không thấy nút Đã giao/Hủy | Đơn đã Save lần đầu chưa? Đơn đã kết thúc thì hai nút được ẩn đúng chủ đích |
-| Không sửa được đơn Đã giao/Hủy | Đúng quy tắc nghiệp vụ; tạo đơn mới để test tiếp |
-| Doanh thu không tăng | Kiểm tra đã giao chưa và xem đúng dòng ngày tạo; Mới/Hủy không được cộng |
-| Doanh thu lớn hơn ví dụ | Đã có thêm đơn được giao từ thao tác tay hoặc browser test; đối chiếu phần tăng thêm |
-| Form chưa hiện thay đổi code mới | Chạy lại `docker compose up -d --build --wait` rồi Ctrl + Shift + R |
-
-Tham khảo thêm: [README](README.md) và [hướng dẫn code FE](docs/frappe-frontend.md).
+Nếu không mở được web, xem `docker compose ps -a` và `docker compose logs initialize backend frontend`.
+Sửa code rồi chạy lại lệnh Compose có `--build`, sau đó Ctrl + Shift + R.
+Bản WSL cũ ở cổng 8000 có database/mật khẩu riêng. Bản đó cần backup/migrate schema trước khi dùng
+chức năng kho mới; hiện hãy kiểm tra bằng Docker ở cổng 8080.

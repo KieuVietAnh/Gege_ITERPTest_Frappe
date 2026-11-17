@@ -4,6 +4,7 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 
 from order_management.order_management.report.daily_revenue.daily_revenue import execute
+from order_management.test_utils import make_item
 
 
 class TestDailyRevenue(FrappeTestCase):
@@ -17,7 +18,7 @@ class TestDailyRevenue(FrappeTestCase):
             ("2001-01-03 13:00:00", 1, 8888, "Hủy"),
         ):
             order = frappe.get_doc({
-                "doctype": "Simple Order", "customer_name": "Report test", "item_name": "Item",
+                "doctype": "Simple Order", "customer_name": "Report test", "item": make_item().name,
                 "quantity": quantity, "unit_price": unit_price,
             }).insert()
             if status != "Mới":

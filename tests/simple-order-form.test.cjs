@@ -10,6 +10,8 @@ test("field edits update the preview using Frappe's number helpers", async () =>
         window: {},
         cint: (value) => parseInt(value, 10) || 0,
         frappe: {
+            session: { user: "Administrator" },
+            user: { has_role: () => false },
             boot: { sysdefaults: { rounding_method: "Banker's Rounding", number_format: "#,###.##" } },
             ui: { form: { on(doctype, handlers) {
                 assert.equal(doctype, "Simple Order");
@@ -63,7 +65,7 @@ test("field edits update the preview using Frappe's number helpers", async () =>
         events.refresh(frm);
         const closed = status !== "Mới";
         assert.equal(saveEnabled, !closed);
-        for (const field of ["customer_name", "item_name", "quantity", "unit_price"]) {
+        for (const field of ["customer_name", "item", "quantity", "unit_price", "warehouse_user"]) {
             assert.equal(properties[field], closed ? 1 : 0);
         }
         assert.equal(typeof buttons["Đã giao"], closed ? "undefined" : "function");
@@ -83,4 +85,40 @@ test("field edits update the preview using Frappe's number helpers", async () =>
             assert.equal(frm.doc.status, "Hủy");
         }
     }
+
+    for (const [user, role, owner, assigned, deliver, cancel, editable] of [
+        ["sale1@example.com", "Order Sales", "sale1@example.com", "kho1@example.com", false, true, true],
+        ["kho1@example.com", "Order Warehouse", "sale1@example.com", "kho1@example.com", true, false, false],
+        ["sale2@example.com", "Order Sales", "sale1@example.com", "kho1@example.com", false, false, false],
+    ]) {
+        context.frappe.session.user = user;
+        context.frappe.user.has_role = value => value === role;
+        const buttons = {}, properties = {};
+        const frm = {
+            doc: { status: "Mới", owner, warehouse_user: assigned }, perm: [{ write: 1 }], is_new: () => false,
+            set_df_property(field, prop, value) { properties[field] = value; },
+            enable_save() {}, disable_save() {}, set_intro() {}, page: { clear_primary_action() {} },
+            add_custom_button(label, action) { buttons[label] = action; },
+        };
+        events.refresh(frm);
+        assert.equal(typeof buttons["Đã giao"] === "function", deliver);
+        assert.equal(typeof buttons["Hủy"] === "function", cancel);
+        assert.equal(buttons["Doanh thu theo ngày"], undefined);
+        assert.equal(properties.unit_price, editable ? 0 : 1);
+    }
+
+    const pending = [];
+    context.frappe.db = { get_value: () => new Promise(resolve => pending.push(resolve)) };
+    const selected = {
+        doc: { item: "OLD" },
+        set_value(field, value) { this.doc[field] = value; return Promise.resolve(); },
+    };
+    const first = events.item(selected);
+    selected.doc.item = "NEW";
+    const second = events.item(selected);
+    pending[1]({ message: { item_name: "New item", default_unit_price: 200 } });
+    await second;
+    pending[0]({ message: { item_name: "Old item", default_unit_price: 100 } });
+    await first;
+    assert.equal(selected.doc.unit_price, 200, "slow item lookup cannot overwrite newer selection");
 });

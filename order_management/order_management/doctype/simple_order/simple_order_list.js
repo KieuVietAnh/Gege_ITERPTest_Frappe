@@ -2,9 +2,11 @@ frappe.listview_settings["Simple Order"] = {
     add_fields: ["status"],
 
     onload(listview) {
-        listview.page.add_inner_button("Doanh thu theo ngày", () => {
-            frappe.set_route("query-report", "Daily Revenue");
-        });
+        if (frappe.session.user === "Administrator") {
+            listview.page.add_inner_button("Doanh thu theo ngày", () => {
+                frappe.set_route("query-report", "Daily Revenue");
+            });
+        }
     },
 
     get_indicator(doc) {

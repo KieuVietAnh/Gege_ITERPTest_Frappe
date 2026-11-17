@@ -136,7 +136,7 @@ hay cấu hình `hooks.py` cho Form Script này.
 1. Mở PowerShell tại dự án và chạy `docker compose up -d --build --wait`.
 2. Sau khi sửa JS, chạy lại lệnh trên rồi tải lại trang bằng **Ctrl + Shift + R**.
 3. Mở `http://localhost:8080/app/simple-order`, chọn **New**.
-4. Nhập khách hàng, mặt hàng, số lượng `2`, đơn giá `150000`.
+4. Nhập khách hàng, chọn mã mặt hàng `KB001`, số lượng `2`, đơn giá `150000`.
 5. Nhấn Tab hoặc click ra khỏi ô để chốt thay đổi; thành tiền nháp là `300000`.
 6. Đổi số lượng thành `3`, nhấn Tab: thành tiền nháp là `450000`, chưa cần Save.
 7. Bấm Save, tải lại đơn và kiểm tra kết quả đã lưu.
