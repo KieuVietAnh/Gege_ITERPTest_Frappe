@@ -1,0 +1,15 @@
+.git
+.cache
+.venv
+.vscode
+dist
+node_modules
+**/__pycache__
+**/*.pyc
+.env
+.env.*
+**/*.pem
+**/*.key
+sites
+logs
+docs

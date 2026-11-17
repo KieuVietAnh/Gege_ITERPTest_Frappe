@@ -1,6 +1,6 @@
 # Hướng dẫn tài khoản và kiểm thử Order Management
 
-Hướng dẫn cho bản demo đang chạy trên máy hiện tại, site `orders.localhost`.
+Hướng dẫn cho bản Docker local, site `orders.localhost`, cổng 8080.
 Không cần tài khoản AWS để sử dụng app cục bộ.
 
 ## 1. Tài khoản nào dùng để test?
@@ -9,7 +9,7 @@ Danh sách tài khoản đã kiểm tra trực tiếp trên site:
 
 | Tài khoản | Mật khẩu | Dùng để làm gì? |
 | --- | --- | --- |
-| `Administrator` | Xem dòng `Password:` trong [.cache/local-login.txt](.cache/local-login.txt) | Đăng nhập Desk, tạo/sửa đơn Mới, giao/hủy đơn, xem báo cáo |
+| `Administrator` | `admin` | Đăng nhập Desk, tạo/sửa đơn Mới, giao/hủy đơn, xem báo cáo |
 | `Guest` | Không có | Đại diện cho người chưa đăng nhập; không dùng để đăng nhập và không được xem dữ liệu đơn hàng/báo cáo |
 
 **Hiện chỉ có một tài khoản đăng nhập để test: `Administrator`.**
@@ -23,9 +23,9 @@ Phân biệt để tránh nhập nhầm:
 - `ERP Test` / `dev@example.com`: metadata tác giả trong mã nguồn, không phải tài khoản web.
 - Tài khoản database cũng không dùng để đăng nhập màn hình web.
 
-File mật khẩu nằm trong `.cache`, đã được Git và ZIP bài nộp bỏ qua.
-Hướng dẫn này không chứa mật khẩu trực tiếp. Nếu cài app trên site/máy mới,
-dùng mật khẩu Administrator bạn tự đặt lúc chạy `bench new-site`; các tài khoản và mật khẩu cũ không tự đi theo mã nguồn.
+`admin` là mật khẩu demo cho bản Docker chỉ mở ở localhost. Nếu cài app bằng Bench,
+dùng mật khẩu Administrator tự đặt lúc chạy `bench new-site`. Bản WSL cũ ở cổng 8000
+vẫn có database và mật khẩu riêng trong `.cache/local-login.txt`.
 
 ## 2. Khởi động và đăng nhập
 
@@ -33,22 +33,22 @@ Mở PowerShell tại thư mục dự án:
 
 ```powershell
 cd C:\Users\CytekPC\OneDrive\Desktop\testegeg
-.\start.ps1
+docker compose up -d --build --wait
 ```
 
-Sau khi thấy `Frappe is running`:
+Sau khi Compose báo các dịch vụ healthy:
 
-1. Mở [màn hình đăng nhập](http://localhost:8000/login).
+1. Mở [màn hình đăng nhập](http://localhost:8080/login).
 2. Username/email: nhập `Administrator`.
-3. Password: lấy từ dòng `Password:` trong [file mật khẩu cục bộ](.cache/local-login.txt).
+3. Password: nhập `admin`.
 4. Bấm **Login**. Nếu trình duyệt đã đăng nhập thì có thể mở danh sách đơn luôn.
 
 Hai màn hình chính:
 
 | Màn hình | Địa chỉ |
 | --- | --- |
-| Danh sách đơn hàng | http://localhost:8000/app/simple-order |
-| Báo cáo doanh thu | http://localhost:8000/app/query-report/Daily%20Revenue |
+| Danh sách đơn hàng | http://localhost:8080/app/simple-order |
+| Báo cáo doanh thu | http://localhost:8080/app/query-report/Daily%20Revenue |
 
 Nếu giao diện còn mã cũ sau khi sửa code, nhấn **Ctrl + Shift + R**.
 
@@ -75,20 +75,8 @@ Hai nút này chỉ xuất hiện sau khi đơn mới đã được lưu lần �
 Trước khi tạo thêm đơn, mở báo cáo và ghi lại số đơn / doanh thu của hôm nay.
 Các bước test bên dưới so sánh phần **tăng thêm**, tránh nhầm dữ liệu demo cũ.
 
-Tại thời điểm viết hướng dẫn, ngày **17/11/2026**, site đang có:
-
-| Đơn demo | Trạng thái | Thành tiền | Có trong doanh thu? |
-| --- | --- | --- | --- |
-| [ORD-00002](http://localhost:8000/app/simple-order/ORD-00002) | Mới | 300.000 | Không |
-| [ORD-00004](http://localhost:8000/app/simple-order/ORD-00004) | Đã giao | 300.000 | Có |
-| [ORD-00005](http://localhost:8000/app/simple-order/ORD-00005) | Hủy | 300.000 | Không |
-| [ORD-00006](http://localhost:8000/app/simple-order/ORD-00006) | Đã giao | 300.000 | Có |
-| [ORD-00007](http://localhost:8000/app/simple-order/ORD-00007) | Hủy | 300.000 | Không |
-
-Báo cáo lúc kiểm tra: **2 đơn đã giao, tổng 600.000**, thuộc ngày tạo **17/11/2026**.
-Đây là dữ liệu tại lúc viết, không phải con số cố định mà mọi lần test đều phải giống.
-Site còn có các đơn Mới khác; chúng không làm tăng doanh thu.
-Khi cài trên site mới, các bản ghi demo này không được tạo tự động.
+Database Docker mới tạo ban đầu không có đơn. Browser test tạo hai đơn demo mỗi lần chạy.
+Không đối chiếu mã đơn hoặc số tổng của bản WSL cũ với bản Docker; hãy ghi số đầu kỳ thực tế.
 
 ## 5. Test tạo đơn và sửa khi còn Mới
 
@@ -150,8 +138,8 @@ Dùng đơn **TEST - Giao hàng** ở mục 5, hiện có số lượng 3, thàn
 7. Bấm **Doanh thu theo ngày** để xem báo cáo.
 
 Kết quả báo cáo: so với trước khi giao đơn này, **tăng 1 đơn và tăng 450.000**
-tại ngày tạo của đơn. Nếu không có ai tạo/giao đơn khác và số đầu kỳ đúng là 2 đơn / 600.000,
-kết quả mới sẽ là **3 đơn / 1.050.000**.
+tại ngày tạo của đơn. Nếu bắt đầu từ database chưa có doanh thu,
+kết quả mới sẽ là **1 đơn / 450.000**.
 
 **Không dùng một đơn đã giao để thử lại luồng hủy.** Đó là chuyển trạng thái bị cấm;
 muốn thử hủy hãy tạo đơn mới ở bước tiếp theo.
@@ -202,11 +190,10 @@ Hiện không có luồng nhân viên gửi duyệt rồi quản lý phê duyệ
 
 ## 12. Chạy test tự động nếu muốn kiểm tra server/API
 
-Các lệnh sau chạy trong PowerShell tại thư mục dự án, sau khi `.\start.ps1` đã chạy:
+Lệnh sau chạy trong PowerShell tại thư mục dự án, sau khi Compose đã chạy:
 
 ```powershell
-wsl -d Ubuntu --cd /home/vietanh/frappe-bench -- /home/vietanh/.local/share/orders-tools/bin/bench --site orders.localhost run-tests --app order_management
-wsl -d Ubuntu --cd /home/vietanh/frappe-bench -- node apps/order_management/tests/simple-order-form.test.cjs
+docker compose exec -T backend bash apps/order_management/docker/test.sh
 ```
 
 Đã có **14 test server** cho dữ liệu, tính tiền, chuyển trạng thái, khóa sửa/xóa,
@@ -245,12 +232,12 @@ một Đã giao và một Hủy, nên doanh thu sẽ tăng tương ứng. Test c
 
 | Hiện tượng | Kiểm tra |
 | --- | --- |
-| Không mở được localhost:8000 | Chạy `.\start.ps1`; xem `.cache/bench.log` và `.cache/bench.error.log` nếu có lỗi |
-| Sai mật khẩu | Đọc file `.cache/local-login.txt` trên máy này; không dùng mật khẩu Windows/WSL |
+| Không mở được localhost:8080 | Chạy `docker compose up -d --build --wait`; xem `docker compose ps -a` và `docker compose logs initialize backend frontend` nếu có lỗi |
+| Sai mật khẩu | Docker mới dùng `Administrator` / `admin`; nếu đã đổi mật khẩu thì dùng mật khẩu đã đổi |
 | Không thấy nút Đã giao/Hủy | Đơn đã Save lần đầu chưa? Đơn đã kết thúc thì hai nút được ẩn đúng chủ đích |
 | Không sửa được đơn Đã giao/Hủy | Đúng quy tắc nghiệp vụ; tạo đơn mới để test tiếp |
 | Doanh thu không tăng | Kiểm tra đã giao chưa và xem đúng dòng ngày tạo; Mới/Hủy không được cộng |
 | Doanh thu lớn hơn ví dụ | Đã có thêm đơn được giao từ thao tác tay hoặc browser test; đối chiếu phần tăng thêm |
-| Form chưa hiện thay đổi code mới | Nhấn Ctrl + Shift + R |
+| Form chưa hiện thay đổi code mới | Chạy lại `docker compose up -d --build --wait` rồi Ctrl + Shift + R |
 
 Tham khảo thêm: [README](README.md) và [hướng dẫn code FE](docs/frappe-frontend.md).

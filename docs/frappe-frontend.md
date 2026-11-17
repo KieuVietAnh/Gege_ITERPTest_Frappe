@@ -1,31 +1,27 @@
 # Cách code giao diện Frappe từ dự án hiện tại
 
+Nếu chưa rõ Desk, Workspace Users và app đơn hàng khác nhau ở đâu, đọc [GIAI-THICH-FRAPPE.md](../GIAI-THICH-FRAPPE.md) trước.
+
 ## 1. Thư mục framework nằm ở đâu?
 
-`/home/vietanh/frappe-bench/apps/frappe` nằm **trong Ubuntu WSL**, không phải thư mục `C:\home`.
-
-Từ File Explorer trên Windows, dán địa chỉ này vào thanh địa chỉ:
-
-```text
-\\wsl.localhost\Ubuntu\home\vietanh\frappe-bench\apps\frappe
-```
-
-Cấu trúc môi trường đang chạy:
+Với bản Docker, mã framework và app nằm trong container. Xem bằng
+`docker compose exec backend bash`, rồi `cd /home/frappe/frappe-bench`:
 
 ```text
-/home/vietanh/frappe-bench/               # môi trường Bench đã tạo
+/home/frappe/frappe-bench/               # nằm trong container
 ├── env/                                # Python virtualenv
 ├── apps/
 │   ├── frappe/                         # mã nguồn framework tải từ GitHub Frappe
-│   └── order_management/                # liên kết đến thư mục Windows của bạn
+│   └── order_management/                # bản code COPY vào image lúc build
 ├── sites/
 │   ├── orders.localhost/               # cấu hình và file riêng của site
 │   └── assets/                         # tài nguyên frontend đã build / liên kết
 └── logs/
 ```
 
-Đây là vị trí được tạo khi chạy `bench init` trong home của user `vietanh`;
-không phải đường dẫn bắt buộc trên mọi máy. Một Bench có thể chứa nhiều app.
+Đường dẫn `/home/vietanh/frappe-bench/apps/frappe` bạn hỏi trước đây là của bản
+Ubuntu WSL cũ. Bản Docker dùng `/home/frappe/...` và web cổng 8080.
+Một Bench có thể chứa nhiều app.
 
 Bạn sửa nghiệp vụ / giao diện của mình tại:
 
@@ -89,10 +85,10 @@ là thay đổi schema, cần cân nhắc migration riêng.
 Trong PowerShell, lệnh migrate cho môi trường đang cài là:
 
 ```powershell
-wsl -d Ubuntu --cd /home/vietanh/frappe-bench -- /home/vietanh/.local/share/orders-tools/bin/bench --site orders.localhost migrate
+docker compose up -d --build --wait
 ```
 
-Nếu thêm field mới trong JSON, thêm cả vào `fields` và `field_order`.
+Lệnh này build lại image từ code Windows rồi tự migrate site. Nếu thêm field mới trong JSON, thêm cả vào `fields` và `field_order`.
 Các thay đổi JSON được lưu trong repo nên người chấm có thể cài lại.
 
 ## 4. Ví dụ JavaScript đã thêm vào app
@@ -137,9 +133,9 @@ hay cấu hình `hooks.py` cho Form Script này.
 
 ## 5. Cách thử ngay
 
-1. Nếu app chưa chạy, mở PowerShell tại dự án và chạy `.\start.ps1`.
-2. Sau khi sửa JS, tải lại toàn bộ trang bằng **Ctrl + Shift + R**.
-3. Mở `http://localhost:8000/app/simple-order`, chọn **New**.
+1. Mở PowerShell tại dự án và chạy `docker compose up -d --build --wait`.
+2. Sau khi sửa JS, chạy lại lệnh trên rồi tải lại trang bằng **Ctrl + Shift + R**.
+3. Mở `http://localhost:8080/app/simple-order`, chọn **New**.
 4. Nhập khách hàng, mặt hàng, số lượng `2`, đơn giá `150000`.
 5. Nhấn Tab hoặc click ra khỏi ô để chốt thay đổi; thành tiền nháp là `300000`.
 6. Đổi số lượng thành `3`, nhấn Tab: thành tiền nháp là `450000`, chưa cần Save.
@@ -149,11 +145,12 @@ hay cấu hình `hooks.py` cho Form Script này.
 Nếu vẫn thấy mã cũ, chạy clear-cache rồi Ctrl + Shift + R:
 
 ```powershell
-wsl -d Ubuntu --cd /home/vietanh/frappe-bench -- /home/vietanh/.local/share/orders-tools/bin/bench --site orders.localhost clear-cache
+docker compose exec backend bench --site orders.localhost clear-cache
 ```
 
-Với Form Script này thường không cần `bench build`. Build dùng cho asset bundle,
-chẳng hạn các file bundle JS/CSS riêng. Sau khi sửa schema JSON vẫn cần migrate.
+Với Bench chạy trực tiếp, Form Script thường chỉ cần clear-cache và tải lại trang;
+JSON cần migrate, bundle JS/CSS cần build. Với Docker hiện tại, code được COPY vào image,
+nên luôn chạy lại lệnh Compose có `--build` để cập nhật code trong container.
 
 ## 6. Thêm nút hoặc hướng dẫn trên form
 
@@ -184,11 +181,10 @@ Mở F12 trên trình duyệt:
 
 Không log mật khẩu hoặc token; bỏ các dòng debug tạm trước khi nộp bài.
 
-Test phần tính nháp bằng Node có sẵn trong WSL, chạy từ thư mục Bench:
+Test phần tính nháp bằng Node trong container, chạy từ thư mục repo:
 
 ```bash
-cd ~/frappe-bench
-node apps/order_management/tests/simple-order-form.test.cjs
+docker compose exec -T backend node apps/order_management/tests/simple-order-form.test.cjs
 ```
 
 Test dùng hàm số của Frappe đã cài và form giả lập; không thay cho kiểm tra hiển thị trong browser.

@@ -5,12 +5,12 @@ const { chromium } = require("playwright");
 
 (async () => {
     const root = path.join(__dirname, "..");
-    const password = fs.readFileSync(path.join(root, ".cache/local-login.txt"), "utf8")
-        .split("\n").find(line => line.startsWith("Password: ")).slice(10).trim();
+    const password = process.env.FRAPPE_TEST_PASSWORD || "admin";
     const browser = await chromium.launch({ headless: true });
     try {
         const context = await browser.newContext({
-            baseURL: "http://127.0.0.1:8000", viewport: { width: 1440, height: 1000 },
+            baseURL: process.env.FRAPPE_TEST_URL || "http://127.0.0.1:8080",
+            viewport: { width: 1440, height: 1000 },
         });
         const login = await context.request.post("/api/method/login", {
             form: { usr: "Administrator", pwd: password },

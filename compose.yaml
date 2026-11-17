@@ -1,0 +1,116 @@
+name: order-management-local
+
+x-app: &app
+  image: order-management:local
+  pull_policy: never
+  restart: unless-stopped
+  volumes:
+    - sites:/home/frappe/frappe-bench/sites
+
+x-ready: &ready
+  initialize:
+    condition: service_completed_successfully
+
+services:
+  db:
+    image: mariadb:10.11
+    restart: unless-stopped
+    command: [--character-set-server=utf8mb4, --collation-server=utf8mb4_unicode_ci]
+    environment:
+      MARIADB_ROOT_PASSWORD: local-db-only
+      MARIADB_ROOT_HOST: '%'
+    volumes:
+      - database:/var/lib/mysql
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  redis-cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  redis-queue:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: [redis-server, --appendonly, 'yes']
+    volumes:
+      - queue:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+
+  initialize:
+    <<: *app
+    build: .
+    restart: 'no'
+    command: [env/bin/python, apps/order_management/docker/initialize.py]
+    environment:
+      # shortcut: these credentials are for localhost only; use secrets before exposing the stack.
+      DB_ROOT_PASSWORD: local-db-only
+      ADMIN_PASSWORD: admin
+    depends_on:
+      db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      redis-queue:
+        condition: service_healthy
+
+  backend:
+    <<: *app
+    depends_on: *ready
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, --header, 'X-Frappe-Site-Name: orders.localhost', 'http://127.0.0.1:8000/api/method/ping']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  websocket:
+    <<: *app
+    command: [node, apps/frappe/socketio.js]
+    depends_on: *ready
+
+  worker:
+    <<: *app
+    command: [bench, worker, --queue, 'short,default,long']
+    depends_on: *ready
+
+  scheduler:
+    <<: *app
+    command: [bench, schedule]
+    depends_on: *ready
+
+  frontend:
+    <<: *app
+    command: [nginx-entrypoint.sh]
+    environment:
+      BACKEND: backend:8000
+      SOCKETIO: websocket:9000
+      FRAPPE_SITE_NAME_HEADER: orders.localhost
+    ports:
+      - '127.0.0.1:8080:8080'
+    depends_on:
+      backend:
+        condition: service_healthy
+      websocket:
+        condition: service_started
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, 'http://127.0.0.1:8080/api/method/ping']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  database:
+  sites:
+  queue:
