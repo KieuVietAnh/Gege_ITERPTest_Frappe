@@ -49,10 +49,12 @@ class TestStockConcurrency(FrappeTestCase):
             self.assertEqual(frappe.db.get_value("Stock Item", item.name, "stock_qty"), 0)
             statuses = [frappe.db.get_value("Simple Order", name, "status") for name in names]
             self.assertEqual(statuses.count("Đã giao"), 1)
+            self.assertEqual(frappe.db.count("Stock Movement", {"item": item.name, "movement_type": "Xuất"}), 1)
             if not same_order:
                 self.assertEqual(statuses.count("Mới"), 1)
         finally:
             frappe.db.rollback()
+            frappe.db.delete("Stock Movement", {"item": item.name})
             for name in names:
                 frappe.db.delete("Version", {"ref_doctype": "Simple Order", "docname": name})
                 frappe.db.delete("Simple Order", {"name": name})

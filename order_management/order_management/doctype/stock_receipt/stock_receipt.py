@@ -20,7 +20,7 @@ class StockReceipt(Document):
             frappe.throw(_("Số lượng nhập phải là số hữu hạn lớn hơn 0."))
 
     def before_save(self):
-        self.balance_after = change_stock(self.item, self.quantity)
+        self.balance_after = change_stock(self.item, self.quantity, self)
 
     def on_trash(self):
         frappe.throw(_("Không được xóa phiếu đã nhập kho."))

@@ -35,9 +35,15 @@ def setup():
                 }).insert()
             else:
                 sale = data.pop("sale")
+                status = data.pop("status", "Mới")
                 data.pop("name")
                 try:
                     frappe.set_user(sale)
-                    frappe.get_doc({"doctype": entity, **data}).insert(set_name=name)
+                    order = frappe.get_doc({"doctype": entity, **data}).insert(set_name=name)
+                    if status != "Mới":
+                        if status == "Đã giao":
+                            frappe.set_user(order.warehouse_user)
+                        order.status = status
+                        order.save()
                 finally:
                     frappe.set_user("Administrator")

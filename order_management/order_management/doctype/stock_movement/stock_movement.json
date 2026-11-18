@@ -1,0 +1,115 @@
+{
+  "doctype": "DocType",
+  "name": "Stock Movement",
+  "module": "Order Management",
+  "engine": "InnoDB",
+  "field_order": [
+    "movement_type",
+    "item",
+    "quantity",
+    "balance_before",
+    "balance_after",
+    "source_type",
+    "source_name",
+    "performed_by",
+    "note",
+    "source_key"
+  ],
+  "fields": [
+    {
+      "fieldname": "movement_type",
+      "label": "Loại",
+      "fieldtype": "Select",
+      "read_only": 1,
+      "options": "Nhập\nXuất",
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "item",
+      "label": "Mặt hàng",
+      "fieldtype": "Link",
+      "read_only": 1,
+      "options": "Stock Item",
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "quantity",
+      "label": "Số lượng",
+      "fieldtype": "Float",
+      "read_only": 1,
+      "precision": "3",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "balance_before",
+      "label": "Tồn trước",
+      "fieldtype": "Float",
+      "read_only": 1,
+      "precision": "3",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "balance_after",
+      "label": "Tồn sau",
+      "fieldtype": "Float",
+      "read_only": 1,
+      "precision": "3",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "source_type",
+      "label": "Loại chứng từ",
+      "fieldtype": "Link",
+      "read_only": 1,
+      "options": "DocType"
+    },
+    {
+      "fieldname": "source_name",
+      "label": "Chứng từ nguồn",
+      "fieldtype": "Dynamic Link",
+      "read_only": 1,
+      "options": "source_type",
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "performed_by",
+      "label": "Người thực hiện",
+      "fieldtype": "Link",
+      "read_only": 1,
+      "options": "User",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "note",
+      "label": "Ghi chú",
+      "fieldtype": "Small Text",
+      "read_only": 1
+    },
+    {
+      "fieldname": "source_key",
+      "label": "Khóa chứng từ",
+      "fieldtype": "Data",
+      "read_only": 1,
+      "unique": 1,
+      "hidden": 1,
+      "reqd": 1
+    }
+  ],
+  "permissions": [
+    {
+      "role": "Administrator",
+      "read": 1,
+      "print": 1
+    },
+    {
+      "role": "Order Warehouse",
+      "read": 1,
+      "print": 1
+    }
+  ],
+  "sort_field": "creation",
+  "sort_order": "DESC"
+}

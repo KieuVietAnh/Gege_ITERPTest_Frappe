@@ -101,6 +101,13 @@ class TestAccessAndStock(FrappeTestCase):
             with self.assertRaises(frappe.ValidationError):
                 order.save()
         self.assertEqual(frappe.db.get_value("Stock Item", self.item.name, "stock_qty"), 3)
+        movement = frappe.get_last_doc("Stock Movement", filters={"source_name": order.name})
+        self.assertEqual(movement.performed_by, self.kho1)
+        with self.set_user(self.sale1):
+            with self.assertRaises(frappe.PermissionError):
+                movement.check_permission("read")
+        with self.set_user(self.kho2):
+            movement.check_permission("read")
 
     def test_forging_assignee_cannot_steal_order(self):
         order = self.order()
@@ -188,5 +195,6 @@ class TestAccessAndStock(FrappeTestCase):
             order.status = "Đã giao"
             order.save()
         frappe.db.rollback(save_point="before_delivery")
+        self.assertEqual(frappe.db.count("Stock Movement", {"source_name": order.name}), 0)
         self.assertEqual(frappe.db.get_value("Simple Order", order.name, "status"), "Mới")
         self.assertEqual(frappe.db.get_value("Stock Item", self.item.name, "stock_qty"), 5)

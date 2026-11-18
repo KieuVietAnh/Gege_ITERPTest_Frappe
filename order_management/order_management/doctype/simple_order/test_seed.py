@@ -18,6 +18,8 @@ class TestSeed(FrappeTestCase):
             ("User", {"email": kho, "first_name": "Seed Kho", "role": "Order Warehouse", "password": "Seed@123456!"}),
             ("Stock Item", {"item_code": code, "item_name": "Seed item", "unit": "Cái", "default_unit_price": 100, "opening_stock": 20}),
             ("Simple Order", {"name": order, "sale": sale, "customer_name": "Seed buyer", "item": code, "quantity": 2, "unit_price": 100, "warehouse_user": kho}),
+            ("Simple Order", {"name": order + "-delivered", "sale": sale, "customer_name": "Delivered buyer", "item": code, "quantity": 2, "unit_price": 100, "warehouse_user": kho, "status": "Đã giao"}),
+            ("Simple Order", {"name": order + "-cancelled", "sale": sale, "customer_name": "Cancelled buyer", "item": code, "quantity": 1, "unit_price": 100, "warehouse_user": kho, "status": "Hủy"}),
         ]
         sql = " UNION ALL ".join(
             f"SELECT {frappe.db.escape(entity)} AS entity, {frappe.db.escape(json.dumps(data))} AS payload"
@@ -28,7 +30,9 @@ class TestSeed(FrappeTestCase):
             setup()
             self.assertEqual(frappe.db.get_value("Simple Order", order, "owner"), sale)
             self.assertEqual(check_password(sale, "Seed@123456!"), sale)
-            self.assertEqual(frappe.db.get_value("Stock Item", code, "stock_qty"), 20)
+            self.assertEqual(frappe.db.get_value("Stock Item", code, "stock_qty"), 18)
+            self.assertEqual(frappe.db.get_value("Simple Order", order + "-cancelled", "status"), "Hủy")
+            self.assertEqual(frappe.db.get_value("Simple Order", order + "-delivered", "status"), "Đã giao")
             with self.set_user(sale):
                 doc = frappe.get_doc("Simple Order", order)
                 doc.status = "Hủy"
@@ -38,7 +42,9 @@ class TestSeed(FrappeTestCase):
             setup()
             self.assertEqual(check_password(sale, "Changed@123456!"), sale)
             self.assertEqual(frappe.db.get_value("Simple Order", order, "status"), "Hủy")
-            self.assertEqual(frappe.db.get_value("Stock Item", code, "stock_qty"), 23)
+            self.assertEqual(frappe.db.get_value("Stock Item", code, "stock_qty"), 21)
+            self.assertEqual(frappe.db.count("Stock Movement", {"item": code, "movement_type": "Xuất"}), 1)
+            self.assertEqual(frappe.db.count("Stock Movement", {"item": code, "movement_type": "Nhập"}), 2)
             self.assertEqual(frappe.db.count("Stock Receipt", {"item": code}), 2)
             self.assertEqual(frappe.db.count("Simple Order", {"name": order}), 1)
 

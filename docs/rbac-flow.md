@@ -13,6 +13,7 @@ Role và schema tự cài khi install/migrate app; không sửa mã framework Fr
 | Xem báo cáo doanh thu | Có | Không | Không |
 | Xem danh mục/tồn kho | Có | Có | Có |
 | Quản lý mặt hàng, nhập kho | Có | Không | Có |
+| Xem lịch sử nhập/xuất kho chung | Có | Không | Có |
 | Sửa tồn trực tiếp hoặc sửa/xóa phiếu nhập đã lưu | Không | Không | Không |
 | Sửa/xóa đơn đã kết thúc | Không | Không | Không |
 
@@ -44,6 +45,7 @@ Có thể lưu đơn chưa phân công; chỉ Kho được phân công mới xu�
 
 - **Stock Item** → `tabStock Item`: mã, tên, đơn vị, giá mặc định, đang sử dụng, tồn chỉ đọc.
 - **Stock Receipt** → `tabStock Receipt`: mặt hàng, số lượng nhập, tồn sau nhập, ghi chú; lưu xong bất biến.
+- **Stock Movement** → `tabStock Movement`: lịch sử nhập/xuất bất biến; bản ghi Xuất là phiếu xuất `OUT-…`, ghi chứng từ nguồn, số lượng, tồn trước/sau và người thực hiện. Tự tạo cùng giao dịch nhập/giao đơn; chứng từ nguồn có unique index.
 - **Simple Order** → `tabSimple Order`: tham chiếu mặt hàng bằng `item`, lưu tên mặt hàng trên đơn,
   dùng `owner` làm người tạo và `warehouse_user` làm người xử lý kho.
 - **Daily Revenue**: chỉ Administrator chạy được; chỉ cộng đơn Đã giao theo ngày tạo.
@@ -59,7 +61,7 @@ Không tự xóa mặt hàng: bỏ chọn Đang sử dụng để giữ tham chi
    Sửa `owner` hoặc `warehouse_user` trong request không tự cấp quyền.
 3. Cập nhật tồn khóa đúng dòng mặt hàng bằng `SELECT ... FOR UPDATE`.
    Phiếu nhập và các đơn cùng một mặt hàng dùng chung khóa này.
-4. Trạng thái đơn, phiếu nhập và số tồn dùng transaction của request.
+4. Trạng thái đơn, phiếu nhập, lịch sử/phiếu xuất và số tồn dùng transaction của request.
    Không commit giữa chừng; lỗi làm rollback toàn bộ.
 5. Hai yêu cầu giao cùng một đơn chỉ được trừ tồn một lần.
    Hai đơn tranh số tồn cuối chỉ một đơn thành công; đơn thất bại vẫn Mới.
@@ -74,6 +76,9 @@ Role/DocType permissions theo
 Không cấp quyền chia sẻ đơn tùy ý, không chỉ ẩn nút ở frontend.
 
 ## Giới hạn bản đầu
+
+Chi tiết trạng thái, seed và giả định gửi/giao hàng: [Luồng đơn và kho](stock-flow.md).
+Lịch sử nhập/xuất bắt đầu từ bản cập nhật này; không tự dựng lại giao dịch cũ.
 
 Một kho chung, một mặt hàng mỗi đơn. Chưa giữ chỗ tồn cho đơn Mới, hoàn/đổi hàng,
 điều chỉnh tồn, chuyển kho, giá vốn, lô/hạn sử dụng hoặc quy trình phê duyệt.

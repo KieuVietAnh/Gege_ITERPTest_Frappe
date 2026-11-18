@@ -73,7 +73,7 @@ class SimpleOrder(Document):
     def before_save(self):
         previous = self.get_doc_before_save()
         if previous and previous.status == "Mới" and self.status == "Đã giao":
-            change_stock(self.item, -self.quantity)
+            change_stock(self.item, -self.quantity, self)
 
     def on_trash(self):
         if self.status in ("Đã giao", "Hủy"):

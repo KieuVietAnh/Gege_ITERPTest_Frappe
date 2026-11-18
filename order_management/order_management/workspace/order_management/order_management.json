@@ -39,6 +39,12 @@
       "doc_view": "List"
     },
     {
+      "label": "Lịch sử nhập / xuất",
+      "type": "DocType",
+      "link_to": "Stock Movement",
+      "doc_view": "List"
+    },
+    {
       "label": "Doanh thu",
       "type": "Report",
       "link_to": "Daily Revenue",
@@ -46,5 +52,5 @@
       "ref_doctype": "Simple Order"
     }
   ],
-  "content": "[{\"id\":\"orders-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Đơn hàng và kho</b></span>\",\"col\":12}},{\"id\":\"shortcut-0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Đơn hàng\",\"col\":3}},{\"id\":\"shortcut-1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mặt hàng và tồn kho\",\"col\":3}},{\"id\":\"shortcut-2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Nhập kho\",\"col\":3}},{\"id\":\"shortcut-3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Doanh thu\",\"col\":3}}]"
+  "content": "[{\"id\":\"orders-header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Đơn hàng và kho</b></span>\",\"col\":12}},{\"id\":\"shortcut-0\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Đơn hàng\",\"col\":3}},{\"id\":\"shortcut-1\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Mặt hàng và tồn kho\",\"col\":3}},{\"id\":\"shortcut-2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Nhập kho\",\"col\":3}},{\"id\":\"shortcut-3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Doanh thu\",\"col\":3}},{\"id\":\"stock-history\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Lịch sử nhập / xuất\",\"col\":3}}]"
 }
